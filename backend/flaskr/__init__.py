@@ -83,12 +83,12 @@ def create_app(test_config=None):
             # Query the questions
             current_questions = []
             questions = Question.query.order_by(Question.id).all()
-            print("questions: {}".format(questions))
+            #print("questions: {}".format(questions))
             if questions == []:
                 abort(422)
             
             current_questions = paginated(request, questions)
-            print("current_questions: {}".current_questions)
+            #print("current_questions: {}".format(current_questions))
             if current_questions == []:
                 abort(422)
                 
