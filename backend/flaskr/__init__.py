@@ -81,26 +81,24 @@ def create_app(test_config=None):
             formatted_categories = {category.id: category.type for category in categories}
 
             # Query the questions
+            current_questions = []
             questions = Question.query.order_by(Question.id).all()
+            print("questions: {}".format(questions))
             if questions == []:
-                current_questions = 0
-                abort(404)
-            else:
-                current_questions = paginated(request, questions)
-            print(questions)
-            print(current_questions)
+                abort(422)
+            
+            current_questions = paginated(request, questions)
+            print("current_questions: {}".current_questions)
             if current_questions == []:
                 abort(422)
+                
+            return jsonify({
+                "success": True,
+                "total_questions": len(Question.query.all()),
+                "questions": current_questions,
+                "categories": formatted_categories,
+            })
 
-            else:
-                current_questions = paginated(request, questions)
-                return jsonify({
-                    "success": True,
-                    "total_questions": len(Question.query.all()),
-                    "questions": current_questions,
-                    "categories": formatted_categories,
-                })
-            
         except Exception as e:
             print(e)
             abort(422)
