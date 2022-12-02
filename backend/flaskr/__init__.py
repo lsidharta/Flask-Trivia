@@ -75,26 +75,33 @@ def create_app(test_config=None):
     """
     @app.route("/questions", methods=['GET'])
     def get_questions():
+        questions = []
+        current_questions = []
+        total_questions = 0
         try:
             # Query the categories
             categories = Category.query.order_by(Category.id).all()
             formatted_categories = {category.id: category.type for category in categories}
-
-            # Query the questions
-            current_questions = []
-            questions = Question.query.order_by(Question.id).all()
-            #print("questions: {}".format(questions))
-            if questions == []:
-                abort(422)
             
-            current_questions = paginated(request, questions)
-            #print("current_questions: {}".format(current_questions))
-            if current_questions == []:
-                abort(422)
-                
+            # Query the questions
+            questions = Question.query.order_by(Question.id).all()
+
+            #print("get_questions -- questions: {}".questions)
+            print("get_questions -- format(questions): {}".format(questions))
+            #print("get_questions -- len(questions): {}".len(Question.query.all()))
+            if questions is None:
+                abort(404)
+            elif questions == []:
+                current_questions = []
+                total_questions = 0
+                print("get_questions -- total_questions : {}".format(total_questions))
+            else:
+                current_questions = paginated(request, questions)
+                total_questions = len(Question.query.all())
+            print("get_questions -- current_question : {}".format(current_questions))
             return jsonify({
                 "success": True,
-                "total_questions": len(Question.query.all()),
+                "total_questions": total_questions, #len(Question.query.all()),
                 "questions": current_questions,
                 "categories": formatted_categories,
             })
@@ -110,7 +117,31 @@ def create_app(test_config=None):
     TEST: When you click the trash icon next to a question, the question will be removed.
     This removal will persist in the database and when you refresh the page.
     """
-  
+    
+    @app.route("/questions/<int:question_id>", methods=["DELETE"])
+    def delete_question(question_id):
+        try:
+            question = Question.query.filter(Question.id == question_id).one_or_none()
+            print("delete_question -- question: {}".format(question))
+            if question is None:
+                abort(404)
+
+            question.delete()
+            selection = Question.query.order_by(Question.id).all()
+            current_questions = paginated(request, selection)
+
+            return jsonify(
+                {
+                    "success": True,
+                    "deleted": question_id,
+                    "current_questions": current_questions,
+                    "total_questions": len(Question.query.all()),
+                }
+            )
+
+        except:
+            abort(422)
+    
     """
     @TODO:
     Create an endpoint to POST a new question,
