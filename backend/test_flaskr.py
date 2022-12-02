@@ -45,25 +45,71 @@ class TriviaTestCase(unittest.TestCase):
     def test_get_questions(self):
         res = self.client().get("/questions")
         data = json.loads(res.data)
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(data["success"], True)
-        self.assertTrue(data["total_questions"])
-        self.assertTrue(len(data["questions"]))
-        self.assertTrue(len(data["categories"]))
+        with self.app.app_context():
+            questions = Question.query.all()
+            if questions == []: # tested OK
+                self.assertEqual(data["total_questions"], 0) # tested OK if question empty
+                self.assertEqual(data["questions"], []) # tested OK if question empty
+            else:
+                self.assertTrue(data["total_questions"])
+                self.assertTrue(len(data["questions"]))
 
+        self.assertEqual(res.status_code, 200)  # tested OK if question empty
+        self.assertEqual(data["success"], True)  # tested OK if question empty
+        #self.assertTrue(len(data["questions"]))
+        self.assertTrue(len(data["categories"]))
+    
     def test_422_get_questions_page_exceeded(self):
         res = self.client().get("/questions?page=1000")
         data = json.loads(res.data)
-        self.assertEqual(res.status_code, 422)
-        self.assertEqual(data["success"], False)
-        self.assertEqual(data["message"], "unprocessable")
+        with self.app.app_context():
+            questions = Question.query.all()
+        if questions == []: # tested OK
+            self.assertEqual(data["total_questions"], 0) # tested OK if question empty
+            self.assertEqual(data["questions"], []) # tested OK if question empty
+        else:
+            self.assertTrue(data["total_questions"])
+            self.assertEqual(len(data["questions"]), 0)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data["success"], True)
 
-    def test_422_get_questions_no_question(self):
-        res = self.client().get("/questions")
+    def test_delete_question(self):
+        with self.app.app_context():
+            res = self.client().delete("/questions/6")
+            data = json.loads(res.data)
+            questions = Question.query.all()
+            question = Question.query.filter(Question.id == 6).one_or_none()
+            #print("test_delete_question -- questions: {}".format(questions))
+            #print("test_delete_question -- question: {}".format(question))
+            #if questions == [] and question is None:
+            #    self.assertEqual(res.status_code, 422) # tested OK if table questions empty
+            #    self.assertEqual(data["success"], False) # tested OK if table questions empty
+            #    self.assertEqual(data["message"], "unprocessable") # tested OK if table questions empty
+            #elif questions != [] and question is None:
+            #    self.assertEqual(res.status_code, 422) # tested OK if question not exist
+            #    #self.assertEqual(res.status_code, 404)
+            #    self.assertEqual(data["success"], False) # tested OK if question not exist
+            #    self.assertEqual(data["message"], "unprocessable") # tested OK if question not exist
+            
+        # tested OK if table questions empty and question not exist
+        if question is None:
+            self.assertEqual(res.status_code, 422)
+            self.assertEqual(data["success"], False)
+            self.assertEqual(data["message"], "unprocessable")
+
+        else:
+            self.assertEqual(res.status_code, 200) 
+            self.assertEqual(data["success"], True)
+            self.assertEqual(data["deleted"], 6)
+            self.assertTrue(data["total_questions"])
+
+    def test_422_question_not_exist(self):
+        res = self.client().delete("/questions/1000")
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 422)
         self.assertEqual(data["success"], False)
         self.assertEqual(data["message"], "unprocessable")
+
 
     def test_get_categories(self):
         res = self.client().get("/categories")
