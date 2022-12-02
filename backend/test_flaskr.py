@@ -64,10 +64,12 @@ class TriviaTestCase(unittest.TestCase):
         data = json.loads(res.data)
         with self.app.app_context():
             questions = Question.query.all()
+        # If table questions is empty
         if questions == []: # tested OK
-            self.assertEqual(data["total_questions"], 0) # tested OK if question empty
-            self.assertEqual(data["questions"], []) # tested OK if question empty
-        else:
+            self.assertEqual(data["total_questions"], 0) 
+            self.assertEqual(data["questions"], []) 
+        # If table questions has data
+        else: # tested OK
             self.assertTrue(data["total_questions"])
             self.assertEqual(len(data["questions"]), 0)
         self.assertEqual(res.status_code, 200)
@@ -91,8 +93,8 @@ class TriviaTestCase(unittest.TestCase):
             #    self.assertEqual(data["success"], False) # tested OK if question not exist
             #    self.assertEqual(data["message"], "unprocessable") # tested OK if question not exist
             
-        # tested OK if table questions empty and question not exist
-        if question is None:
+        # If table questions empty and question not exist
+        if question is None: # tested OK 
             self.assertEqual(res.status_code, 422)
             self.assertEqual(data["success"], False)
             self.assertEqual(data["message"], "unprocessable")
@@ -110,6 +112,27 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data["success"], False)
         self.assertEqual(data["message"], "unprocessable")
 
+    def test_create_new_question(self):
+        res = self.client().post("/questions", json=self.new_question)
+        data = json.loads(res.data)
+        with self.app.app_context():
+            question = Question.query.\
+                filter(Question.question == self.new_question['question']).\
+                order_by(Question.id.desc()).\
+                first()#one_or_none()
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data["success"], True)
+        self.assertEqual(data["created"], question.id)
+        self.assertTrue(len(data["questions"]))
+        self.assertTrue(data["total_questions"])
+
+    def test_405_if_create_question_not_allowed(self):
+        res = self.client().post("/questions/1000", json=self.new_question)
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 405)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"], "method not allowed")
 
     def test_get_categories(self):
         res = self.client().get("/categories")
