@@ -98,10 +98,10 @@ def create_app(test_config=None):
             else:
                 current_questions = paginated(request, questions)
                 total_questions = len(Question.query.all())
-            print("get_questions -- current_question : {}".format(current_questions))
+            #print("get_questions -- current_question : {}".format(current_questions))
             return jsonify({
                 "success": True,
-                "total_questions": total_questions, #len(Question.query.all()),
+                "total_questions": total_questions, 
                 "questions": current_questions,
                 "categories": formatted_categories,
             })
@@ -121,14 +121,22 @@ def create_app(test_config=None):
     @app.route("/questions/<int:question_id>", methods=["DELETE"])
     def delete_question(question_id):
         try:
+            """ Query the categories """
+            categories = Category.query.order_by(Category.id).all()
+            formatted_categories = {category.id: category.type for category in categories}
+            
+            """ Delete the designated question """
             question = Question.query.filter(Question.id == question_id).one_or_none()
             print("delete_question -- question: {}".format(question))
+            # Abort if the designated question doesn't exist
             if question is None:
-                abort(404)
-
+                abort(422)
+            # Delete the question
             question.delete()
-            selection = Question.query.order_by(Question.id).all()
-            current_questions = paginated(request, selection)
+
+            """ Query for the response """
+            questions = Question.query.order_by(Question.id).all()
+            current_questions = paginated(request, questions)
 
             return jsonify(
                 {
@@ -136,6 +144,7 @@ def create_app(test_config=None):
                     "deleted": question_id,
                     "current_questions": current_questions,
                     "total_questions": len(Question.query.all()),
+                    "categories": formatted_categories
                 }
             )
 
@@ -163,7 +172,53 @@ def create_app(test_config=None):
     only question that include that string within their question.
     Try using the word "title" to start.
     """
+    @app.route("/questions", methods=["POST"])
+    def create_search_question():
+        body = request.get_json()
+        searchTerm = body.get("searchTerm", None)
+        new_question = body.get("question", None)
+        new_answer = body.get("answer", None)
+        new_difficulty = body.get("difficulty", None)
+        new_category = body.get("category", None)
+        print("create_search_question: {}, {}, {}, {}, {}".format(searchTerm, new_question, new_answer, new_difficulty, new_category))
+        
+        try:
+            if searchTerm:
+                selection = Question.query.order_by(Question.id).filter(
+                    Question.question.ilike("%{}%".format(searchTerm))
+                )
+                # selection = Book.query.order_by(Book.id).filter(or_(Book.title.ilike('%{}%'.format(search)), Book.author.ilike('%{}%'.format(search))))
+                current_questions = paginated(request, selection)
 
+                return jsonify(
+                    {
+                        "success": True,
+                        "questions": current_questions,
+                        "total_questions": len(selection.all()),
+                    }
+                )
+            else:
+                new_question_obj = Question(question=new_question, 
+                                    answer=new_answer, 
+                                    difficulty=new_difficulty,
+                                    category=new_category)
+                new_question_obj.insert()
+
+                selection = Question.query.order_by(Question.id).all()
+                current_questions = paginated(request, selection)
+
+                return jsonify(
+                    {
+                        "success": True,
+                        "created": new_question_obj.id,
+                        "questions": current_questions,
+                        "total_questions": len(Question.query.all()),
+                    }
+                )
+
+        except Exception as e:
+            print(e)
+            abort(422)
     """
     @TODO:
     Create a GET endpoint to get questions based on category.
