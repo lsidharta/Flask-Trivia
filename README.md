@@ -1,49 +1,303 @@
-# API Development and Documentation Final Project
+# Trivia App
 
-## Trivia App
+## Introduction
 
-Udacity is invested in creating bonding experiences for its employees and students. A bunch of team members got the idea to hold trivia on a regular basis and created a webpage to manage the trivia app and play the game, but their API experience is limited and still needs to be built out.
+Trivia App is an application to play and manage Trivia game. 
 
-That's where you come in! Help them finish the trivia app so they can start holding trivia and seeing who's the most knowledgeable of the bunch. The application must:
+The features of this Trivia App are:
+1. Display 10 questions on each page. Each question is shown with its category, difficulty level and answer. You may filter the questions by category.
+2. Delete a question.
+3. Add new question and its answer.
+4. Search for a questions.
+5. Play the Trivia game.
 
-1. Display questions - both all questions and by category. Questions should show the question, category and difficulty rating by default and can show/hide the answer.
-2. Delete questions.
-3. Add questions and require that they include question and answer text.
-4. Search for questions based on a text query string.
-5. Play the quiz game, randomizing either all questions or within a specific category.
+### Install the Trivia App
 
-Completing this trivia app will give you the ability to structure plan, implement, and test an API - skills essential for enabling your future applications to communicate with others.
+Trivia App is built on Flask, a Python's micro-framework for web app development. You can follow the following steps to install Trivia App.
 
-## Starting and Submitting the Project
+1. Create a Python virtual environment.
+2. Install project dependencies.
 
-[Fork](https://help.github.com/en/articles/fork-a-repo) the project repository and [clone](https://help.github.com/en/articles/cloning-a-repository) your forked repository to your machine. Work on the project locally and make sure to push all your changes to the remote repository before submitting the link to your repository in the Classroom.
+    `pip install -r requirements.txt`
 
-## About the Stack
+3. Create the initial database from a running psql environment.
 
-We started the full stack application for you. It is designed with some key functional areas:
+    `dropdb trivia`
 
-### Backend
+    `createdb trivia`
 
-The [backend](./backend/README.md) directory contains a partially completed Flask and SQLAlchemy server. You will work primarily in `__init__.py` to define your endpoints and can reference models.py for DB and SQLAlchemy setup. These are the files you'd want to edit in the backend:
+    `psql trivia < trivia.psql`
 
-1. `backend/flaskr/__init__.py`
-2. `backend/test_flaskr.py`
 
-> View the [Backend README](./backend/README.md) for more details.
+### Start the Trivia's servers
 
-### Frontend
+Trivia App consists of Flask backend and React frontend.
+To run the app, you need to start the backend and frontend servers separately.
 
-The [frontend](./frontend/README.md) directory contains a complete React frontend to consume the data from the Flask server. If you have prior experience building a frontend application, you should feel free to edit the endpoints as you see fit for the backend you design. If you do not have prior experience building a frontend application, you should read through the frontend code before starting and make notes regarding:
+1. Run the backend server
 
-1. What are the end points and HTTP methods the frontend is expecting to consume?
-2. How are the requests from the frontend formatted? Are they expecting certain parameters or payloads?
+    `export FLASK_APP=flaskr`
 
-Pay special attention to what data the frontend is expecting from each API response to help guide how you format your API. The places where you may change the frontend behavior, and where you should be looking for the above information, are marked with `TODO`. These are the files you'd want to edit in the frontend:
+    `export FLASK_DEBUG=true` 
 
-1. `frontend/src/components/QuestionView.js`
-2. `frontend/src/components/FormView.js`
-3. `frontend/src/components/QuizView.js`
+    `flask run`
 
-By making notes ahead of time, you will practice the core skill of being able to read and understand code and will have a simple plan to follow to build out the endpoints of your backend API.
 
-> View the [Frontend README](./frontend/README.md) for more details.
+FLASK_DEBUG replaces the FLASK_ENV which is deprecated in Flask 2.3. 
+
+The backend server is running in `http://localhost:5000`.
+
+2. Run the frontend server
+
+    `npm install` (first time only)
+
+    `npm start`
+
+The frontend server is running in `http://localhost:3000`.
+
+After both servers run, you can play the Trivia game, display Trivia questions, select a category to filter the questions, create a new question, and play the game.
+
+## APIs in Trivia App
+
+### Base URL
+
+`http://127.0.0.1:5000/`
+
+### Error Handling
+
+When the request fails, the API will return error messages as JSON objects. There are five errors types.
+
+400: bad request
+```
+{
+    "success": False, 
+    "error": 400,
+    "message": "bad request"
+}
+```
+
+404: resource not found
+```
+{
+    "success": False, 
+    "error": 404,
+    "message": "resource not found"
+}
+```
+
+405: method not allowed
+```
+{
+    "success": False, 
+    "error": 405, 
+    "message": "method not allowed"
+}
+```
+
+422: unprocessable
+```
+{
+    "success": False, 
+    "error": 422, 
+    "message": "unprocessable"
+}
+```
+
+500: internal error
+```
+{
+    "success": False, 
+    "error": 500, 
+    "message": "internal error"
+}
+```
+
+### API Endpoints
+
+#### 1. List of Questions
+
+`curl -X GET http://127.0.0.1:5000/questions` or
+
+`curl -X GET http://127.0.0.1:5000/questions?page=[page_number]`
+
+Example of return values if page_number = 3:
+```
+{
+  "page": 3,
+  "questions": [
+    {
+      "answer": "answer1",
+      "category": 1,
+      "difficulty": 1,
+      "id": 25,
+      "question": "test1"
+    }
+  ],
+  "success": true,
+  "total_pages": 3,
+  "total_questions": 21
+}
+```
+ However, if you ask the page which exceeds the maximum available page, you will get an empty result.
+
+ ```
+ {
+  "page": 4,
+  "questions": [],
+  "success": true,
+  "total_pages": 3,
+  "total_questions": 21
+}
+ ```
+
+#### 2. Delete a question
+
+`curl -X DELETE http://127.0.0.1:5000/questions/[question_id]`
+
+If question id is 6, the success result will be as follows:
+```
+{
+    "current_questions": [
+        ...,
+        {
+            "answer": "Maya Angelou",
+            "category": 4,
+            "difficulty": 2,
+            "id": 5,
+            "question": "Whose autobiography is entitled 'I Know Why the Caged Bird Sings'?"
+        },
+        {
+            "answer": "Muhammad Ali",
+            "category": 4,
+            "difficulty": 1,
+            "id": 7,
+            "question": "What boxer's original name is Cassius Clay?"
+        },
+        ...
+    ]
+    "deleted": 6,
+    "success": true,
+    "total_questions": 20
+}
+```
+If the requested question is not available in the database, you will get a unsuccessful result that contains a 422 error message.
+```
+{
+    "error": 422,
+    "message": "unprocessable",
+    "success": false
+}
+```
+
+#### 3. Search a question
+
+`curl -X POST -H "Content-Type: application/json" -d '{"searchTerm":"test1"}' http://127.0.0.1:5000/questions`
+
+Or if you use Postman, you can do a POST request to:
+
+`http://localhost:5000/questions` 
+
+and set the body of the request as
+```
+{
+    "searchTerm": "world"
+}
+```
+The success result will be as follows:
+```
+{
+    "questions": [
+        {
+            "answer": "Brazil",
+            "category": 6,
+            "difficulty": 3,
+            "id": 10,
+            "question": "Which is the only team to play in every soccer World Cup tournament?"
+        },
+        {
+            "answer": "Uruguay",
+            "category": 6,
+            "difficulty": 4,
+            "id": 11,
+            "question": "Which country won the first ever soccer World Cup in 1930?"
+        }
+    ],
+    "success": true,
+    "total_questions": 2
+}
+```
+On the other hand, the unsuccessful result is an empty questions array.
+```
+{
+    "questions": [],
+    "success": true,
+    "total_questions": 0
+}
+```
+
+#### 4. Create a New Question
+`curl -X POST -H "Content-Type: application/json" -d '{"question":"test3", "answer":"answer3", "difficulty":3, "category":3}'`
+
+Or in Postman, the body of the POST request can be setup such as:
+```
+{
+    "question":"test3", 
+    "answer":"answer3", 
+    "difficulty":3, 
+    "category":3
+}
+```
+
+The successful result returns the id of the new created question "26".
+```
+{
+    "created": 26,
+    "questions": [
+        ...
+    ],
+    "success": true,
+    "total_questions": 21
+}
+```
+
+However, if we entered the wrong URL, such as 
+
+`curl -X POST -H "Content-Type: application/json" -d '{"question":"test1", "answer":"answer1", "difficulty":1, "category":1}' http://127.0.0.1:5000/questions/1000`,
+
+the unsuccessfull created response is:
+```
+{
+    "error": 405,
+    "message": "method not allowed",
+    "success": false
+}
+```
+
+#### 5. Play the Quizz
+
+`curl -X POST localhost:5000/quizzes -H "Content-Type:application/json" -d '{"previous_questions":[12], "quiz_category":{"type":"History", "id":"4"}}'`
+
+Of in Postman, set the body of the POST request to the URL `http://localhost:5000/questions` as
+
+```
+{
+    "previous_questions":[12], 
+    "quiz_category":{
+        "type":"History", 
+        "id":"4"
+    }
+}
+```
+The result you will get is one question of category History that is chosen randomly.
+```
+{
+    "question": {
+        "answer": "Scarab",
+        "category": 4,
+        "difficulty": 4,
+        "id": 23,
+        "question": "Which dung beetle was worshipped by the ancient Egyptians?"
+    },
+    "success": true
+}
+```
