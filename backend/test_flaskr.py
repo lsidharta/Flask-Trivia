@@ -1,11 +1,11 @@
 import os
+from dotenv import load_dotenv
 import unittest
 import json
 from flask_sqlalchemy import SQLAlchemy
 
 from flaskr import create_app
-from models import setup_db, Question, Category
-
+from models import db, setup_db, Question, Category
 
 class TriviaTestCase(unittest.TestCase):
     """This class represents the trivia test case"""
@@ -45,34 +45,10 @@ class TriviaTestCase(unittest.TestCase):
     def test_get_questions(self):
         res = self.client().get("/questions")
         data = json.loads(res.data)
-        with self.app.app_context():
-            questions = Question.query.all()
-            if questions == []: 
-                self.assertEqual(data["total_questions"], 0) 
-                self.assertEqual(data["questions"], []) 
-            else:
-                self.assertTrue(data["total_questions"])
-                self.assertTrue(len(data["questions"]))
-
         self.assertEqual(res.status_code, 200) 
         self.assertEqual(data["success"], True) 
+        self.assertTrue(data["questions"])
         self.assertTrue(len(data["categories"]))
-
-    def test_422_get_questions_page_exceeded(self):
-        res = self.client().get("/questions?page=1000")
-        data = json.loads(res.data)
-        with self.app.app_context():
-            questions = Question.query.all()
-        # If table questions is empty
-        if questions == []: 
-            self.assertEqual(data["total_questions"], 0) 
-            self.assertEqual(data["questions"], []) 
-        # If table questions has data
-        else: 
-            self.assertTrue(data["total_questions"])
-            self.assertEqual(len(data["questions"]), 0)
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(data["success"], True)
 
     def test_delete_question(self):
         with self.app.app_context():
@@ -92,7 +68,7 @@ class TriviaTestCase(unittest.TestCase):
             self.assertEqual(data["deleted"], 6)
             self.assertTrue(data["total_questions"])
 
-    def test_422_question_not_exist(self):
+    def test_422_delete_question_not_exist(self):
         res = self.client().delete("/questions/1000")
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 422)
