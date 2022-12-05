@@ -1,4 +1,5 @@
 import os
+import math
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -14,10 +15,12 @@ def paginated(request, selection):
     start = (page - 1) * QUESTIONS_PER_PAGE
     end = start + QUESTIONS_PER_PAGE
 
+    total_pages = math.ceil(len(selection)/QUESTIONS_PER_PAGE)
+
     questions = [question.format() for question in selection]
     current_questions = questions[start:end]
 
-    return current_questions
+    return page, total_pages, current_questions
 
 def create_app(test_config=None):
     # create and configure the app
@@ -74,32 +77,30 @@ def create_app(test_config=None):
     """
     @app.route("/questions")
     def get_questions():
-        questions = []
-        current_questions = []
-        total_questions = 0
         try:
             # Query the categories
             categories = Category.query.order_by(Category.id).all()
             formatted_categories = {category.id: category.type for category in categories}
             
-            # Query the questions
+            # Query the questions           
             questions = Question.query.order_by(Question.id).all()
-
-            if questions is None:
+            # Paginate the question to display max QUESTIONS_PER_PAGE
+            page, total_pages, current_questions = paginated(request, questions)
+            total_questions = len(questions)
+            #print("questions = {}".format(questions))
+            #print("current_questions = {}".format(current_questions))
+            #print("total_questions = {}".format(total_questions))
+            if not questions:
+                print("There is no question.")
                 abort(404)
-            elif questions == []:
-                current_questions = []
-                total_questions = 0
-                print("get_questions -- total_questions : {}".format(total_questions))
-            else:
-                current_questions = paginated(request, questions)
-                total_questions = len(Question.query.all())
-            
+
             return jsonify({
                 "success": True,
                 "total_questions": total_questions, 
                 "questions": current_questions,
                 "categories": formatted_categories,
+                "page": page,
+                "total_pages": total_pages
             })
 
         except Exception as e:
@@ -132,7 +133,7 @@ def create_app(test_config=None):
 
             """ Query for the response """
             questions = Question.query.order_by(Question.id).all()
-            current_questions = paginated(request, questions)
+            page, total_pages, current_questions = paginated(request, questions)
 
             return jsonify(
                 {
@@ -140,7 +141,7 @@ def create_app(test_config=None):
                     "deleted": question_id,
                     "current_questions": current_questions,
                     "total_questions": len(Question.query.all()),
-                    "categories": formatted_categories
+                    "categories": formatted_categories,
                 }
             )
 
@@ -181,16 +182,18 @@ def create_app(test_config=None):
             if searchTerm:
                 searched_questions = Question.query.order_by(Question.id).filter(
                     Question.question.ilike("%{}%".format(searchTerm))).all()
-                            
+                print("searched_questions: {}".format(searched_questions))           
+                page, total_pages, current_questions = paginated(request, searched_questions)
+                total_questions = len(searched_questions)
+                print("current_questions: {}".format(current_questions))
+                print("total_questions: {}".format(total_questions))
+
                 if searched_questions is None:
                     abort(404)
-                elif searched_questions == []:
+                if searched_questions == []:
                     current_questions = []
                     total_questions = 0
-                else:
-                    current_questions = paginated(request, searched_questions)
-                    total_questions = len(searched_questions)
-
+            
                 return jsonify(
                     {
                         "success": True,
@@ -206,7 +209,7 @@ def create_app(test_config=None):
                 new_question_obj.insert()
 
                 selection = Question.query.order_by(Question.id).all()
-                current_questions = paginated(request, selection)
+                page, total_pages, current_questions = paginated(request, selection)
                 
                 # if the just created question is not unique
                 created_id = new_question_obj.id
@@ -246,14 +249,16 @@ def create_app(test_config=None):
                 total_questions = 0
                 print("get_questions -- total_questions : {}".format(total_questions))
             else:
-                current_questions = paginated(request, questions)
+                page, total_pages, current_questions = paginated(request, questions)
                 total_questions = len(Question.query.all())
         
             return jsonify({
                 "success": True,
                 "total_questions": total_questions,
                 "questions": current_questions,
-                "categories": current_category.type
+                "categories": current_category.type,
+                "page": page,
+                "total_pages": total_pages
             })
         except Exception as e:
             print(e)
@@ -273,7 +278,7 @@ def create_app(test_config=None):
     def play_quizz():
         body = request.get_json()
         cat = body.get("quiz_category", None)
-        print(cat)
+        #print(cat)
         prev_questions = body.get("previous_questions", None)
         try:
             print (cat)
