@@ -59,6 +59,11 @@ After both servers run, you can play the Trivia game, display Trivia questions, 
 
 ## APIs in Trivia App
 
+
+### Authentication
+
+This API does not need any authentication key.
+
 ### Base URL
 
 `http://127.0.0.1:5000/`
